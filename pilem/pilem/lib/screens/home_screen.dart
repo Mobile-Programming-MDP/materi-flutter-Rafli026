@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pilem/models/movie.dart';
 import 'package:pilem/screens/detail_screen.dart';
 import 'package:pilem/services/api_services.dart';
+import 'package:pilem/services/favorite_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +13,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
+  final FavoriteService _favoriteService = FavoriteService();
 
   List<Movie> _allMovies = [];
   List<Movie> _trendingMovies = [];
@@ -39,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _favoriteService.notifier.addListener(() => setState(() {}));
     _loadMovies();
   }
 
@@ -79,6 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: movies.length,
             itemBuilder: (BuildContext build, int index) {
               final Movie movie = movies[index];
+              final bool isFav = _favoriteService.favorites.any(
+                (m) => m.id == movie.id,
+              );
               return GestureDetector(
                 onTap: () => Navigator.push(
                   context,
@@ -90,12 +96,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
                     children: [
-                      Image.network(
-                        "https://image.tmdb.org/t/p/w500${movie.posterPath}",
-                        width: 100,
-                        height: 150,
-                        fit: BoxFit.cover,
+                      Stack(
+                        children: [
+                          Image.network(
+                            "https://image.tmdb.org/t/p/w500${movie.posterPath}",
+                            width: 100,
+                            height: 150,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (isFav) {
+                                  _favoriteService.remove(movie);
+                                } else {
+                                  _favoriteService.add(movie);
+                                }
+                              },
+                              child: Icon(
+                                isFav ? Icons.favorite : Icons.favorite_border,
+                                color: Colors.redAccent,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 4),
                       Text(
                         movie.title.length > 14
                             ? '${movie.title.substring(0, 10)}...'

@@ -1,13 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:pilem/models/movie.dart';
+import 'package:pilem/services/favorite_service.dart';
 
-class DetailScreen extends StatelessWidget {
+class DetailScreen extends StatefulWidget {
   final Movie movie;
   const DetailScreen({super.key, required this.movie});
+
+  @override
+  State<DetailScreen> createState() => _DetailScreenState();
+}
+
+class _DetailScreenState extends State<DetailScreen> {
+  bool _isFavorite = false;
+  late final FavoriteService _favoriteService;
+
+  @override
+  void initState() {
+    super.initState();
+    _favoriteService = FavoriteService();
+    _isFavorite = _favoriteService.favorites.any(
+      (m) => m.id == widget.movie.id,
+    );
+    // listen for external changes (in case user toggled from another screen)
+    _favoriteService.notifier.addListener(_updateFavoriteState);
+  }
+
+  @override
+  void dispose() {
+    _favoriteService.notifier.removeListener(_updateFavoriteState);
+    super.dispose();
+  }
+
+  void _updateFavoriteState() {
+    final currentlyFav = _favoriteService.favorites.any(
+      (m) => m.id == widget.movie.id,
+    );
+    if (currentlyFav != _isFavorite) {
+      setState(() {
+        _isFavorite = currentlyFav;
+      });
+    }
+  }
+
+  void _toggleFavorite() async {
+    if (_isFavorite) {
+      await _favoriteService.remove(widget.movie);
+    } else {
+      await _favoriteService.add(widget.movie);
+    }
+    // favorite service will notify listeners and update state
+  }
+
   @override
   Widget build(BuildContext context) {
+    final movie = widget.movie;
     return Scaffold(
-      appBar: AppBar(title: Text(movie.title)),
+      appBar: AppBar(
+        title: Text(movie.title),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: Colors.redAccent,
+            ),
+            onPressed: _toggleFavorite,
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: SingleChildScrollView(

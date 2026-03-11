@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pilem/models/movie.dart';
 import 'package:pilem/screens/detail_screen.dart';
 import 'package:pilem/services/api_services.dart';
+import 'package:pilem/services/favorite_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -11,12 +12,14 @@ class SearchScreen extends StatefulWidget {
 
 class SearchScreenState extends State<SearchScreen> {
   final ApiService _apiService = ApiService();
+  final FavoriteService _favoriteService = FavoriteService();
   final TextEditingController _searchController = TextEditingController();
   List<Movie> _searchResults = [];
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_searchMovies);
+    _favoriteService.notifier.addListener(() => setState(() {}));
   }
 
   @override
@@ -95,6 +98,25 @@ class SearchScreenState extends State<SearchScreen> {
                         fit: BoxFit.cover,
                       ),
                       title: Text(movie.title),
+                      trailing: IconButton(
+                        icon: Icon(
+                          _favoriteService.favorites.any(
+                                (m) => m.id == movie.id,
+                              )
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: Colors.redAccent,
+                        ),
+                        onPressed: () {
+                          if (_favoriteService.favorites.any(
+                            (m) => m.id == movie.id,
+                          )) {
+                            _favoriteService.remove(movie);
+                          } else {
+                            _favoriteService.add(movie);
+                          }
+                        },
+                      ),
                       onTap: () {
                         Navigator.push(
                           context,
