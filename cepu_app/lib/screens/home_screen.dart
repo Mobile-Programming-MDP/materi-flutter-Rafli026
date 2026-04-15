@@ -206,3 +206,6 @@ class _TambahPageState extends State<TambahPage> {
   }
 }
 ---firebase narapidana 
+-- firebase login
+-- flutter fire configure 
+-- dart globl activate flutterfire_cli
