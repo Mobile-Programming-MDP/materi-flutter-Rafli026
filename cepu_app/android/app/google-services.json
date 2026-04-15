@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "872146431594",
+    "project_id": "first-project-40482",
+    "storage_bucket": "first-project-40482.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:872146431594:android:945f9a122f6b932eac2413",
+        "android_client_info": {
+          "package_name": "com.example.cash_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCM4oY88FQn9BoZT6urIbgXFc1Gk7AB0o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:872146431594:android:7f7a24ee50f5f748ac2413",
+        "android_client_info": {
+          "package_name": "com.example.cepu_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCM4oY88FQn9BoZT6urIbgXFc1Gk7AB0o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
