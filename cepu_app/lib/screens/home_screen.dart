@@ -53,6 +53,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  String generateAvatarUrl(String? fullname) {
+    final formattedName = fullname!.trim().replaceAll(' ', '+');
+    return 'https://ui-avatars.com/api/?name=$formattedName&color=7F9CF5&background=EBF4FF';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,6 +69,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
+            Image.network(
+              generateAvatarUrl(
+                FirebaseAuth.instance.currentUser?.displayName.toString(),
+              ),
+              width: 100,
+              height: 100,
+            ),
             Text("hellow"),
             Text("UID: $_uid"),
             Text("Email: $_email"),
