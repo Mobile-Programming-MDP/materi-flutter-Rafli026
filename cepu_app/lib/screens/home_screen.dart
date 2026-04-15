@@ -86,3 +86,122 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'tambah_page.dart';
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final dbRef = FirebaseDatabase.instance.ref("narapidana");
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Data Narapidana")),
+      body: StreamBuilder(
+        stream: dbRef.onValue,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+            return Center(child: Text("Belum ada data"));
+          }
+
+          final data = snapshot.data!.snapshot.value as Map;
+          final list = data.entries.toList();
+
+          return ListView.builder(
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              final item = list[index].value;
+
+              return Card(
+                child: ListTile(
+                  title: Text(item["nama"]),
+                  subtitle: Text(
+                    "${item["jk"]} | Umur: ${item["umur"]}\nKasus: ${item["kasus"]}",
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => TambahPage()),
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+class TambahPage extends StatefulWidget {
+  @override
+  _TambahPageState createState() => _TambahPageState();
+}
+
+class _TambahPageState extends State<TambahPage> {
+  final nama = TextEditingController();
+  final jk = TextEditingController();
+  final umur = TextEditingController();
+  final kasus = TextEditingController();
+
+  final dbRef = FirebaseDatabase.instance.ref("narapidana");
+
+  void simpanData() {
+    dbRef.push().set({
+      "nama": nama.text,
+      "jk": jk.text,
+      "umur": umur.text,
+      "kasus": kasus.text,
+    });
+
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Tambah Narapidana")),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: nama,
+              decoration: InputDecoration(labelText: "Nama"),
+            ),
+            TextField(
+              controller: jk,
+              decoration: InputDecoration(labelText: "Jenis Kelamin"),
+            ),
+            TextField(
+              controller: umur,
+              decoration: InputDecoration(labelText: "Umur"),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: kasus,
+              decoration: InputDecoration(labelText: "Kasus"),
+            ),  
+            SizedBox(height: 20),
+            ElevatedButton(onPressed: simpanData, child: Text("Simpan")),
+          ],
+        ),
+      ),
+    );
+  }
+}
