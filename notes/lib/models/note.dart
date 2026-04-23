@@ -1,43 +1,49 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-//Ada 6 field, yaitu : id, title, description, imageUrl, createdAt, updatedAt 
-
 class Note {
-  String id;
-  String title;
-  String description;
-  String imageUrl;
-  DateTime createdAt;
-  DateTime updatedAt;
+  String? id;
+  final String title;
+  final String description;
+  String? imageBase64;
+  Timestamp? createdAt;
+  Timestamp? updatedAt;
+  String? latitude;
+  String? longitude;
 
   Note({
-    required this.id,
+    this.id,
     required this.title,
     required this.description,
-    required this.imageUrl,
-    required this.createdAt,
-    required this.updatedAt,
+    this.imageBase64,
+    this.createdAt,
+    this.updatedAt,
+    this.latitude,
+    this.longitude,
   });
 
   factory Note.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Note(
       id: doc.id,
-      title: data['title'] ?? '',
-      description: data['description'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      title: data['title'],
+      description: data['description'],
+      imageBase64: data['image_base_64'],
+      createdAt: data['created_at'] as Timestamp,
+      updatedAt: data['updated_at'] as Timestamp,
+      latitude: data['latitude'],
+      longitude: data['longitude'],
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toDocument() {
     return {
       'title': title,
       'description': description,
-      'imageUrl': imageUrl,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'image_base64': imageBase64,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }

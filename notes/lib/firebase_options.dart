@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'notes-a13db.firebasestorage.app',
     measurementId: 'G-TC1R2VV2VQ',
   );
+
 }
