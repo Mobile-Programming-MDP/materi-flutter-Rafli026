@@ -1,4 +1,7 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
@@ -20,7 +23,8 @@ class _AddPostScreenState extends State<AddPostScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController();
 
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
   double? _latitude;
   double? _longitude;
   bool _isLoading = false;
@@ -28,8 +32,10 @@ class _AddPostScreenState extends State<AddPostScreen> {
   Future<void> pickImage() async {
     final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = pickedFile;
+        _selectedImageBytes = bytes;
       });
     }
   }
@@ -70,9 +76,10 @@ class _AddPostScreenState extends State<AddPostScreen> {
     try {
       User? currentUser = FirebaseAuth.instance.currentUser;
 
+      final imageData = 'data:${_selectedImage!.mimeType ?? 'image/png'};base64,${base64Encode(_selectedImageBytes!)}';
       final post = Post(
         id: '',
-        image: _selectedImage!.path,
+        image: imageData,
         description: _descriptionController.text,
         category: _categoryController.text,
         latitude: _latitude!,
@@ -125,8 +132,8 @@ class _AddPostScreenState extends State<AddPostScreen> {
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: _selectedImage != null
-                    ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                child: _selectedImage != null && _selectedImageBytes != null
+                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
                     : const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,

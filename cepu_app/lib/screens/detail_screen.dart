@@ -30,20 +30,36 @@ class DetailPostScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.network(
-              post.image,
-              width: double.infinity,
-              height: 300,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: double.infinity,
-                  height: 300,
-                  color: Colors.grey[300],
-                  child: const Center(child: Text('Image not available')),
-                );
-              },
-            ),
+            if (post.image.startsWith('data:image/'))
+              Image.memory(
+                UriData.parse(post.image).contentAsBytes(),
+                width: double.infinity,
+                height: 300,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 300,
+                    color: Colors.grey[300],
+                    child: const Center(child: Text('Image not available')),
+                  );
+                },
+              )
+            else
+              Image.network(
+                post.image,
+                width: double.infinity,
+                height: 300,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 300,
+                    color: Colors.grey[300],
+                    child: const Center(child: Text('Image not available')),
+                  );
+                },
+              ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
