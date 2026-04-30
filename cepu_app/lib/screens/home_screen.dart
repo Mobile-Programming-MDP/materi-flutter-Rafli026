@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:cepu_app/firebase_options.dart';
 import 'package:cepu_app/screens/add_post_screen.dart';
 import 'package:cepu_app/services/post_services.dart';
+import 'package:share_plus/share_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -85,6 +86,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPostCard(Post post) {
     final bool isDataUrl = post.image.startsWith('data:image/');
+    final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final bool isOwner = post.userId == currentUserId;
+
     final Widget imageWidget = isDataUrl
         ? Image.memory(
             UriData.parse(post.image).contentAsBytes(),
@@ -118,7 +122,59 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            imageWidget,
+            Stack(
+              children: [
+                imageWidget,
+                if (isOwner)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Delete Post'),
+                              content: const Text('Apakah Anda yakin ingin menghapus post ini?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Batal'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+                                    try {
+                                      await _postServices.deletePost(post.id);
+                                      setState(() {
+                                        _postsFuture = loadPosts();
+                                      });
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Post deleted successfully')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error: $e')),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: const Text('Hapus'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -132,6 +188,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(post.description),
                   const SizedBox(height: 8),
                   Text('By ${post.userFullname}'),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final String shareText = '''
+Post dari ${post.userFullname}
+
+Kategori: ${post.category}
+
+${post.description}
+
+Lokasi: ${post.latitude}, ${post.longitude}
+''';
+                          await Share.share(
+                            shareText,
+                            subject: 'Cek post ini dari Cepu App!',
+                          );
+                        },
+                        icon: const Icon(Icons.share, size: 18),
+                        label: const Text('Share'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

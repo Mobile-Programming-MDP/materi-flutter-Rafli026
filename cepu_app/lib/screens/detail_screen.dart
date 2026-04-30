@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cepu_app/models/post.dart';
 
@@ -17,6 +18,23 @@ class DetailPostScreen extends StatelessWidget {
     } else {
       throw 'Could not launch $googleMapsUrl';
     }
+  }
+
+  Future<void> _sharePost() async {
+    final String shareText = '''
+Post dari ${post.userFullname}
+
+Kategori: ${post.category}
+
+${post.description}
+
+Lokasi: ${post.latitude}, ${post.longitude}
+''';
+
+    await Share.share(
+      shareText,
+      subject: 'Cek post ini dari Cepu App!',
+    );
   }
 
   @override
@@ -107,6 +125,15 @@ class DetailPostScreen extends StatelessWidget {
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     child: const Text('Open in Maps'),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _sharePost,
+                    icon: const Icon(Icons.share),
+                    label: const Text('Share Post'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
                   ),
                 ],
               ),
