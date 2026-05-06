@@ -4,6 +4,7 @@ import 'package:cepu_app/screens/sign_in_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:cepu_app/firebase_options.dart';
 import 'package:cepu_app/screens/add_post_screen.dart';
 import 'package:cepu_app/services/post_services.dart';
@@ -19,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PostServices _postServices = PostServices();
   late Future<List<Post>> _postsFuture;
+  late MapController _mapController;
 
   Future<void> signOut(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
@@ -71,8 +73,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _mapController = MapController();
     getFirebaseAuthUser();
     _postsFuture = loadPosts();
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   Future<List<Post>> loadPosts() async {
