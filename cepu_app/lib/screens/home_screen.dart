@@ -1,14 +1,9 @@
-import 'package:cepu_app/models/post.dart';
-import 'package:cepu_app/screens/detail_screen.dart';
-import 'package:cepu_app/screens/sign_in_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:cepu_app/firebase_options.dart';
 import 'package:cepu_app/screens/add_post_screen.dart';
+import 'package:cepu_app/screens/sign_in_screen.dart';
 import 'package:cepu_app/services/post_services.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:cepu_app/widgets/post_list_items.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,12 +13,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PostServices _postServices = PostServices();
-  late Future<List<Post>> _postsFuture;
-  late MapController _mapController;
-
-  Future<void> signOut(BuildContext context) async {
+  Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => SignInScreen()),
@@ -31,287 +23,163 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<String?> getTokenAuth() async {
-    User? user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      String? idToken = await user.getIdToken(true);
-      return idToken;
-    }
-
-    return null;
+  //Fungsi untuk membuat url foto profile / avatar
+  String generateAvatarUrl(String? fullName) {
+    final formattedName = fullName!.trim().replaceAll(' ', '+');
+    return 'https://ui-avatars.com/api/?name=$formattedName&color=FFFFFF&background=000000';
   }
 
-  String? _idToken = "";
-  String? _uid = "";
-  String? _email = "";
-
-  Future<void> getFirebaseAuthUser() async {
-    User? user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      _uid = user.uid;
-      _email = user.email;
-      await user
-          .getIdToken(true)
-          .then(
-            (value) => {
-              setState(() {
-                _idToken = value;
-              }),
-            },
-          );
-    }
+  //1. Create variable untuk menyimpan kategori
+  String? selectedCategory;
+  List<String> get categories {
+    return [
+      'Jalan Rusak',
+      'Lampu Jalan Mati',
+      'Lawan Arah',
+      'Merokok di Jalan',
+      'Tidak Pakai Helm',
+    ];
   }
 
-  String generateAvatarUrl(String? fullname) {
-    final safeName = (fullname == null || fullname.isEmpty) ? 'User' : fullname;
-    final formattedName = safeName.trim().replaceAll(' ', '+');
-    return 'https://ui-avatars.com/api/?name=$formattedName&color=7F9CF5&background=EBF4FF';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _mapController = MapController();
-    getFirebaseAuthUser();
-    _postsFuture = loadPosts();
-  }
-
-  @override
-  void dispose() {
-    _mapController.dispose();
-    super.dispose();
-  }
-
-  Future<List<Post>> loadPosts() async {
-    return _postServices.getAllPosts();
-  }
-
-  String _shorten(String? value, int maxLength) {
-    if (value == null || value.isEmpty) return '';
-    return value.length <= maxLength ? value : '${value.substring(0, maxLength)}...';
-  }
-
-  Widget _buildPostCard(Post post) {
-    final bool isDataUrl = post.image.startsWith('data:image/');
-    final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final bool isOwner = post.userId == currentUserId;
-
-    final Widget imageWidget = isDataUrl
-        ? Image.memory(
-            UriData.parse(post.image).contentAsBytes(),
-            width: double.infinity,
-            height: 140,
-            fit: BoxFit.cover,
-          )
-        : Image.network(
-            post.image,
-            width: double.infinity,
-            height: 140,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: double.infinity,
-                height: 140,
-                color: Colors.grey[300],
-                child: const Center(child: Text('Image not available')),
-              );
-            },
-          );
-
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => DetailPostScreen(post: post)),
-        );
-      },
-      child: Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
+  //2. Create function untuk menampilkan modal bottom sheet
+  //untuk memilih kategori
+  void _showCategoryFilter() async {
+    final result = await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.75,
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 24),
               children: [
-                imageWidget,
-                if (isOwner)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('Delete Post'),
-                              content: const Text('Apakah Anda yakin ingin menghapus post ini?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    Navigator.pop(context);
-                                    try {
-                                      await _postServices.deletePost(post.id);
-                                      setState(() {
-                                        _postsFuture = loadPosts();
-                                      });
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Post deleted successfully')),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Error: $e')),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  child: const Text('Hapus'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                    ),
+                ListTile(
+                  leading: const Icon(Icons.clear),
+                  title: Text("All Category"),
+                  onTap: () => Navigator.pop(
+                    context,
+                    null,
+                  ), // Null untuk memilih semua kategori
+                ),
+                const Divider(),
+                ...categories.map(
+                  (category) => ListTile(
+                    title: Text(category),
+                    trailing: selectedCategory == category
+                        ? Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () => Navigator.pop(
+                      context,
+                      category,
+                    ), // Kategori yang dipilih
                   ),
+                ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post.category,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(post.description),
-                  const SizedBox(height: 8),
-                  Text('By ${post.userFullname}'),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          final String shareText = '''
-Post dari ${post.userFullname}
-
-Kategori: ${post.category}
-
-${post.description}
-
-Lokasi: ${post.latitude}, ${post.longitude}
-''';
-                          await Share.share(
-                            shareText,
-                            subject: 'Cek post ini dari Cepu App!',
-                          );
-                        },
-                        icon: const Icon(Icons.share, size: 18),
-                        label: const Text('Share'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
+
+    if (result != null) {
+      setState(() {
+        selectedCategory = result;
+        // Set kategori yang dipilih atau null untuk Semua Kategori
+      });
+    } else {
+      setState(() {
+        selectedCategory = null;
+        // Reset ke null untuk menampilkan semua kategori
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home Screen"),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          //3. Tambahkan IconButton untuk memunculkan filter kategori
           IconButton(
-            onPressed: () => signOut(context),
-            icon: const Icon(Icons.logout),
+            onPressed: _showCategoryFilter,
+            icon: const Icon(Icons.filter_list),
+            tooltip: "Filter",
+          ),
+          IconButton(
+            onPressed: () {
+              signOut();
+            },
+            icon: Icon(Icons.logout),
+            tooltip: "Sign Out",
           ),
         ],
       ),
-      body: FutureBuilder<List<Post>>(
-        future: _postsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error loading posts: ${snapshot.error}'));
-          }
-
-          final posts = snapshot.data ?? [];
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Image.network(
-                    generateAvatarUrl(
-                      FirebaseAuth.instance.currentUser?.displayName,
-                    ),
-                    width: 100,
-                    height: 100,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Center(child: Text('hellow')),
-                const SizedBox(height: 8),
-                Text('UID: ${_shorten(_uid, 12)}'),
-                const SizedBox(height: 4),
-                Text('Email: $_email'),
-                const SizedBox(height: 4),
-                Text('Token: ${_shorten(_idToken, 40)}'),
-                const SizedBox(height: 24),
-                const Text(
-                  'Daftar Post',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                if (posts.isEmpty)
-                  const Text('Belum ada post. Tekan tombol + untuk menambahkan post.')
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: posts.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) => _buildPostCard(posts[index]),
-                  ),
-              ],
+      body: Column(
+        children: [
+          const SizedBox(height: 8.0),
+          Image.network(
+            generateAvatarUrl(
+              FirebaseAuth.instance.currentUser?.displayName.toString(),
             ),
-          );
-        },
+            width: 80,
+            height: 80,
+          ),
+          const SizedBox(height: 8.0),
+          Text(
+            FirebaseAuth.instance.currentUser!.displayName!,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8.0),
+          const Divider(),
+          Expanded(
+            child: StreamBuilder(
+              //4. Ganti stream dengan memanggil fungsi 
+              //getPostListByCategory dengan parameter selectedCategory
+              stream: PostService.getPostListByCategory(selectedCategory),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                final posts = snapshot.data ?? [];
+                if (posts.isEmpty) {
+                  return const Center(child: Text('No posts yet.'));
+                }
+                return RefreshIndicator(
+                  onRefresh: () async {},
+                  child: ListView.builder(
+                    itemCount: posts.length,
+                    itemBuilder: (context, index) {
+                      final post = posts[index];
+                      final isOwner =
+                          currentUserId != null && post.userId == currentUserId;
+                      //Buat widget PostListItem, di dalam folder widgets
+                      //dengan nama file post_list_item.dart
+                      return PostListItem(post: post, isOwner: isOwner);
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
+          Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => const AddPostScreen()),
-          ).then((_) {
-            setState(() {
-              _postsFuture = loadPosts();
-            });
-          });
+          );
         },
         child: const Icon(Icons.add),
       ),

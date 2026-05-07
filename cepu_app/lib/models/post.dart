@@ -1,49 +1,57 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Post {
-  final String id;
-  final String image;
-  final String description;
-  final String category;
-  final double latitude;
-  final double longitude;
-  final String userId;
-  final String userFullname;
+  String? id;
+  String? image;
+  String? description;
+  String? category;
+  Timestamp? createdAt;
+  Timestamp? updatedAt;
+  String? latitude;
+  String? longitude;
+  String? userId;
+  String? userFullName;
 
   Post({
-    required this.id,
-    required this.image,
-    required this.description,
-    required this.category,
-    required this.latitude,
-    required this.longitude,
-    required this.userId,
-    required this.userFullname,
+    this.id,
+    this.image,
+    this.description,
+    this.category,
+    this.createdAt,
+    this.updatedAt,
+    this.latitude,
+    this.longitude,
+    this.userId,
+    this.userFullName,
   });
 
-  // Convert Firestore document to Post object
-  factory Post.fromMap(Map<String, dynamic> map, String docId) {
+  factory Post.fromDocument(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Post(
-      id: docId,
-      image: map['image'] ?? '',
-      description: map['description'] ?? '',
-      category: map['category'] ?? '',
-      latitude: map['latitude'] ?? 0.0,
-      longitude: map['longitude'] ?? 0.0,
-      userId: map['userId'] ?? '',
-      userFullname: map['userFullname'] ?? '',
+      id: doc.id,
+      image: doc['image'],
+      description: data['description'],
+      category: data['category'],
+      createdAt: data['created_at'] as Timestamp,
+      updatedAt: data['updated_at'] as Timestamp,
+      latitude: data['latitude'],
+      longitude: data['longitude'],
+      userId: data['user_id'],
+      userFullName: data['user_full_name'],
     );
   }
 
-  // Convert Post object to Firestore document
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toDocument() {
     return {
       'image': image,
       'description': description,
       'category': category,
       'latitude': latitude,
       'longitude': longitude,
-      'userId': userId,
-      'userFullname': userFullname,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'user_id': userId,
+      'user_full_name': userFullName,
     };
   }
 }

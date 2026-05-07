@@ -1,128 +1,139 @@
+import 'dart:convert';
+
 import 'package:cepu_app/models/post.dart';
 import 'package:cepu_app/screens/map_detail_screen.dart';
+import 'package:cepu_app/services/post_services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
-class DetailPostScreen extends StatelessWidget {
+class DetailScreen extends StatelessWidget {
   final Post post;
 
-  const DetailPostScreen({super.key, required this.post});
+  const DetailScreen({super.key, required this.post});
 
-  String generateAvatarUrl(String? fullname) {
-    final safeName = (fullname == null || fullname.isEmpty) ? 'User' : fullname;
-    final formattedName = safeName.trim().replaceAll(' ', '+');
-    return 'https://ui-avatars.com/api/?name=$formattedName&color=7F9CF5&background=EBF4FF';
+  Future<void> _deletePost(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await PostService.deletePost(post);
+      if (context.mounted) Navigator.pop(context);
+    }
+  }
+
+  void _sharePost(dynamic SharePlus) {
+    final text =
+        '${post.category ?? ''}\n${post.description ?? ''}\nPosted by: ${post.userFullName ?? ''}';
+    SharePlus.instance.share(ShareParams(text: text));
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDataUrl = post.image.startsWith('data:image/');
-
-    final Widget imageWidget = isDataUrl
-        ? Image.memory(
-            UriData.parse(post.image).contentAsBytes(),
-            width: double.infinity,
-            height: 250,
-            fit: BoxFit.cover,
-          )
-        : Image.network(
-            post.image,
-            width: double.infinity,
-            height: 250,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: double.infinity,
-                height: 250,
-                color: Colors.grey[300],
-                child: const Center(child: Text('Image not available')),
-              );
-            },
-          );
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isOwner = currentUserId != null && post.userId == currentUserId;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail Post'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(post.category ?? 'Post Detail'),
+        actions: [
+          IconButton(
+            onPressed: _sharePost,
+            icon: const Icon(Icons.share),
+            tooltip: 'Share',
+          ),
+          if (isOwner)
+            IconButton(
+              onPressed: () => _deletePost(context),
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete',
+              color: Colors.red,
+            ),
+        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            imageWidget,
-            const SizedBox(height: 16),
-            Text(
-              post.category,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              post.description,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Image.network(
-                generateAvatarUrl(post.userFullname),
-                width: 60,
-                height: 60,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                'By ${post.userFullname}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Lokasi:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text('Latitude: ${post.latitude}'),
-            Text('Longitude: ${post.longitude}'),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final String shareText = '''
-Post dari ${post.userFullname}
-
-Kategori: ${post.category}
-
-${post.description}
-
-Lokasi: ${post.latitude}, ${post.longitude}
-''';
-                    await Share.share(
-                      shareText,
-                      subject: 'Cek post ini dari Cepu App!',
-                    );
-                  },
-                  icon: const Icon(Icons.share),
-                  label: const Text('Share'),
+            if (post.image != null && post.image!.isNotEmpty)
+              Image.memory(
+                base64Decode(post.image!),
+                width: double.infinity,
+                height: 250,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox(
+                  height: 250,
+                  child: Center(child: Icon(Icons.broken_image, size: 64)),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MapDetailScreen(post: post),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (post.category != null) Chip(label: Text(post.category!)),
+                  const SizedBox(height: 8),
+                  Text(
+                    post.description ?? '',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Icon(Icons.person, size: 18, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        post.userFullName ?? 'Unknown',
+                        style: const TextStyle(color: Colors.grey),
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.location_on),
-                  label: const Text('Lihat Map'),
-                ),
-              ],
+                    ],
+                  ),
+                  if (post.latitude != null && post.longitude != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${post.latitude}, ${post.longitude}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MapDetailScreen(post: post),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.map),
+                    label: const Text('View on Map'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

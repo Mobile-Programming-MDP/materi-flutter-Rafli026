@@ -1,58 +1,101 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cepu_app/models/post.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PostServices {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+class PostService {
+  static final FirebaseFirestore _database = FirebaseFirestore.instance;
+  static final CollectionReference _postsCollection = _database.collection(
+    'posts',
+  );
 
-  // Add new post
-  Future<void> addPost(Post post) async {
-    try {
-      await _firestore.collection('posts').add(post.toMap());
-    } catch (e) {
-      throw Exception('Error adding post: $e');
-    }
+  static Future<void> addPost(Post post) async {
+    Map<String, dynamic> newPost = {
+      'image': post.image,
+      'description': post.description,
+      'category': post.category,
+      'latitude': post.latitude,
+      'longitude': post.longitude,
+      'created_at': FieldValue.serverTimestamp(),
+      'updated_at': FieldValue.serverTimestamp(),
+      'user_id': post.userId,
+      'user_full_name': post.userFullName,
+    };
+    await _postsCollection.add(newPost);
   }
 
-  // Get all posts
-  Future<List<Post>> getAllPosts() async {
-    try {
-      final querySnapshot = await _firestore.collection('posts').get();
-      return querySnapshot.docs
-          .map((doc) => Post.fromMap(doc.data(), doc.id))
-          .toList();
-    } catch (e) {
-      throw Exception('Error getting posts: $e');
-    }
+  static Future<void> updatPost(Post post) async {
+    Map<String, dynamic> updatedPost = {
+      'image': post.image,
+      'description': post.description,
+      'category': post.category,
+      'latitude': post.latitude,
+      'longitude': post.longitude,
+      'created_at': post.createdAt,
+      'updated_at': FieldValue.serverTimestamp(),
+      'user_id': post.userId,
+      'user_full_name': post.userFullName,
+    };
+
+    await _postsCollection.doc(post.id).update(updatedPost);
   }
 
-  // Get post by ID
-  Future<Post?> getPostById(String postId) async {
-    try {
-      final doc = await _firestore.collection('posts').doc(postId).get();
-      if (doc.exists) {
-        return Post.fromMap(doc.data()!, doc.id);
-      }
-      return null;
-    } catch (e) {
-      throw Exception('Error getting post: $e');
-    }
+  static Future<void> deletePost(Post post) async {
+    await _postsCollection.doc(post.id).delete();
   }
 
-  // Delete post
-  Future<void> deletePost(String postId) async {
-    try {
-      await _firestore.collection('posts').doc(postId).delete();
-    } catch (e) {
-      throw Exception('Error deleting post: $e');
-    }
+  static Future<QuerySnapshot> retrievePost() {
+    return _postsCollection.get();
   }
 
-  // Update post
-  Future<void> updatePost(String postId, Post post) async {
-    try {
-      await _firestore.collection('posts').doc(postId).update(post.toMap());
-    } catch (e) {
-      throw Exception('Error updating post: $e');
+  static Stream<List<Post>> getPostList() {
+    return _postsCollection.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return Post(
+          id: doc.id,
+          image: data['image'],
+          description: data['description'],
+          category: data['category'],
+          createdAt: data['created_at'] != null
+              ? data['created_at'] as Timestamp
+              : null,
+          updatedAt: data['updated_at'] != null
+              ? data['updated_at'] as Timestamp
+              : null,
+          latitude: data['latitude'],
+          longitude: data['longitude'],
+          userId: data['user_id'],
+          userFullName: data['user_full_name'],
+        );
+      }).toList();
+    });
+  }
+
+  //1. Create function getPostListByCategory dgn parameter category
+  static Stream<List<Post>> getPostListByCategory(String? category) {
+    Query query = _postsCollection;
+    if (category != null) {
+      query = query.where('category', isEqualTo: category);
     }
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return Post(
+          id: doc.id,
+          image: data['image'],
+          description: data['description'],
+          category: data['category'],
+          createdAt: data['created_at'] != null
+              ? data['created_at'] as Timestamp
+              : null,
+          updatedAt: data['updated_at'] != null
+              ? data['updated_at'] as Timestamp
+              : null,
+          latitude: data['latitude'],
+          longitude: data['longitude'],
+          userId: data['user_id'],
+          userFullName: data['user_full_name'],
+        );
+      }).toList();
+    });
   }
 }
