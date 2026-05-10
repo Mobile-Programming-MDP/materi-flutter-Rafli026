@@ -1,3 +1,4 @@
+import 'package:cepu_app/models/post.dart';
 import 'package:cepu_app/screens/add_post_screen.dart';
 import 'package:cepu_app/screens/sign_in_screen.dart';
 import 'package:cepu_app/services/post_services.dart';
@@ -13,6 +14,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String? selectedCategory;
+  List<String> get categories {
+    return [
+      'Jalan Rusak',
+      'Lampu Jalan Mati',
+      'Lawan Arah',
+      'Merokok di Jalan',
+      'Tidak Pakai Helm',
+    ];
+  }
+
   Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();
     if (!mounted) return;
@@ -29,20 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'https://ui-avatars.com/api/?name=$formattedName&color=FFFFFF&background=000000';
   }
 
-  //1. Create variable untuk menyimpan kategori
-  String? selectedCategory;
-  List<String> get categories {
-    return [
-      'Jalan Rusak',
-      'Lampu Jalan Mati',
-      'Lawan Arah',
-      'Merokok di Jalan',
-      'Tidak Pakai Helm',
-    ];
-  }
-
-  //2. Create function untuk menampilkan modal bottom sheet
-  //untuk memilih kategori
   void _showCategoryFilter() async {
     final result = await showModalBottomSheet(
       context: context,
@@ -90,13 +88,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result != null) {
       setState(() {
-        selectedCategory = result;
-        // Set kategori yang dipilih atau null untuk Semua Kategori
+        selectedCategory =
+            result; // Set kategori yang dipilih atau null untuk Semua Kategori
       });
     } else {
+      // Jika result adalah null, berarti memilih Semua Kategori
       setState(() {
-        selectedCategory = null;
-        // Reset ke null untuk menampilkan semua kategori
+        selectedCategory =
+            null; // Reset ke null untuk menampilkan semua kategori
       });
     }
   }
@@ -108,7 +107,6 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text("Home Screen"),
         actions: [
-          //3. Tambahkan IconButton untuk memunculkan filter kategori
           IconButton(
             onPressed: _showCategoryFilter,
             icon: const Icon(Icons.filter_list),
@@ -142,8 +140,6 @@ class _HomeScreenState extends State<HomeScreen> {
           const Divider(),
           Expanded(
             child: StreamBuilder(
-              //4. Ganti stream dengan memanggil fungsi 
-              //getPostListByCategory dengan parameter selectedCategory
               stream: PostService.getPostListByCategory(selectedCategory),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -153,6 +149,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
                 final posts = snapshot.data ?? [];
+                // final posts =
+                // snapshot.data!.docs.where((doc) {
+                //   final data = doc.data();
+                //   final category = data['category'] ?? 'Lainnya';
+                //   return selectedCategory == null ||
+                //       selectedCategory == category;
+                // }).toList();
                 if (posts.isEmpty) {
                   return const Center(child: Text('No posts yet.'));
                 }

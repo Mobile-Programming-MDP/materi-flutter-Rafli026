@@ -17,7 +17,7 @@ class PostService {
       'created_at': FieldValue.serverTimestamp(),
       'updated_at': FieldValue.serverTimestamp(),
       'user_id': post.userId,
-      'user_full_name': post.userFullName,
+      'full_name': post.fullName,
     };
     await _postsCollection.add(newPost);
   }
@@ -32,7 +32,7 @@ class PostService {
       'created_at': post.createdAt,
       'updated_at': FieldValue.serverTimestamp(),
       'user_id': post.userId,
-      'user_full_name': post.userFullName,
+      'full_name': post.fullName,
     };
 
     await _postsCollection.doc(post.id).update(updatedPost);
@@ -64,13 +64,12 @@ class PostService {
           latitude: data['latitude'],
           longitude: data['longitude'],
           userId: data['user_id'],
-          userFullName: data['user_full_name'],
+          fullName: data['full_name'],
         );
       }).toList();
     });
   }
 
-  //1. Create function getPostListByCategory dgn parameter category
   static Stream<List<Post>> getPostListByCategory(String? category) {
     Query query = _postsCollection;
     if (category != null) {
@@ -93,7 +92,7 @@ class PostService {
           latitude: data['latitude'],
           longitude: data['longitude'],
           userId: data['user_id'],
-          userFullName: data['user_full_name'],
+          fullName: data['full_name'],
         );
       }).toList();
     });

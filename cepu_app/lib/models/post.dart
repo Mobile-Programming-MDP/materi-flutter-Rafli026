@@ -10,7 +10,7 @@ class Post {
   String? latitude;
   String? longitude;
   String? userId;
-  String? userFullName;
+  String? fullName;
 
   Post({
     this.id,
@@ -22,7 +22,7 @@ class Post {
     this.latitude,
     this.longitude,
     this.userId,
-    this.userFullName,
+    this.fullName,
   });
 
   factory Post.fromDocument(DocumentSnapshot doc) {
@@ -37,7 +37,7 @@ class Post {
       latitude: data['latitude'],
       longitude: data['longitude'],
       userId: data['user_id'],
-      userFullName: data['user_full_name'],
+      fullName: data['full_name'],
     );
   }
 
@@ -51,7 +51,7 @@ class Post {
       'created_at': createdAt,
       'updated_at': updatedAt,
       'user_id': userId,
-      'user_full_name': userFullName,
+      'full_name': fullName,
     };
   }
 }

@@ -4,7 +4,7 @@ import 'package:cepu_app/models/post.dart';
 import 'package:cepu_app/screens/detail_screen.dart';
 import 'package:cepu_app/services/post_services.dart';
 import 'package:flutter/material.dart';
-
+import 'package:share_plus/share_plus.dart';
 
 class PostListItem extends StatelessWidget {
   final Post post;
@@ -39,18 +39,19 @@ class PostListItem extends StatelessWidget {
   //flutter pub add share_plus
   void _sharePost() {
     final text =
-        '${post.category ?? ''}\n${post.description ?? ''}\nPosted by: ${post.userFullName ?? ''}';
+        '${post.category ?? ''}\n${post.description ?? ''}\nPosted by: ${post.fullName ?? ''}';
     SharePlus.instance.share(ShareParams(text: text));
   }
+
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: ListTile(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => DetailScreen(post: post)),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => DetailScreen(post: post)));
         },
         leading: post.image != null && post.image!.isNotEmpty
             ? ClipRRect(
@@ -79,7 +80,7 @@ class PostListItem extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              post.userFullName ?? '',
+              post.fullName ?? '',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],

@@ -4,23 +4,17 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 //install depenencies flutter_map dan latlong2
-class MapDetailScreen extends StatefulWidget {
+class MapDetailScreen extends StatelessWidget {
   final Post post;
   const MapDetailScreen({super.key, required this.post});
-
-  @override
-  State<MapDetailScreen> createState() => _MapDetailScreenState();
-}
-
-class _MapDetailScreenState extends State<MapDetailScreen> {
   @override
   Widget build(BuildContext context) {
-    final lat = double.tryParse(widget.post.latitude ?? '');
-    final lng = double.tryParse(widget.post.longitude ?? '');
+    final lat = double.tryParse(post.latitude ?? '');
+    final lng = double.tryParse(post.longitude ?? '');
     final hasLocation = lat != null && lng != null;
     final point = hasLocation ? LatLng(lat, lng) : const LatLng(0, 0);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.post.category ?? 'Map Detail')),
+      appBar: AppBar(title: Text(post.category ?? 'Map Detail')),
       body: hasLocation
           ? FlutterMap(
               options: MapOptions(initialCenter: point, initialZoom: 15),
