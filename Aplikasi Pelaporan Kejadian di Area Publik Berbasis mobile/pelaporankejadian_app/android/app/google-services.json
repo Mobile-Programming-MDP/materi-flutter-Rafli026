@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "740167142295",
+    "firebase_url": "https://pelaporkejadian-7a53d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "pelaporkejadian-7a53d",
+    "storage_bucket": "pelaporkejadian-7a53d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:740167142295:android:a25168b4579752a100d2d2",
+        "android_client_info": {
+          "package_name": "com.example.pelaporankejadian_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwxVUAcO1JDKo0SuQ8vd-isZdoB9XisgQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
