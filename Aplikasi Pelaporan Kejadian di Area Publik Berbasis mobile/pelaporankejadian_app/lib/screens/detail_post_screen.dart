@@ -33,7 +33,7 @@ class DetailPostScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               child: Image.memory(
                 post.imageBytes!,
-                height: 240,
+                height: 280,
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),
@@ -56,7 +56,7 @@ class DetailPostScreen extends StatelessWidget {
 
           const SizedBox(height: 16),
           SizedBox(
-            height: 240,
+            height: 340,
             child: MapScreen(
               initialLat: post.latitude,
               initialLng: post.longitude,

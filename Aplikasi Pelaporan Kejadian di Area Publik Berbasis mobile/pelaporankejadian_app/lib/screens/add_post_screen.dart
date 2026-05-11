@@ -38,6 +38,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
   bool _loadingPost = false;
 
   Uint8List? _imageBytes;
+  String? _imagePath;
 
   double? _latitude;
   double? _longitude;
@@ -71,6 +72,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
     setState(() {
       _imageBytes = imageBytes;
+      _imagePath = picked.path;
       _loadingImg = false;
     });
   }
@@ -137,6 +139,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
         description: desc,
         latitude: _latitude!,
         longitude: _longitude!,
+        imagePath: _imagePath,
         imageBytes: _imageBytes,
       );
 
@@ -144,7 +147,8 @@ class _AddPostScreenState extends State<AddPostScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Post berhasil disimpan')));
-      Navigator.of(context).pushReplacementNamed('/home');
+      if (!mounted) return;
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _loadingPost = false);

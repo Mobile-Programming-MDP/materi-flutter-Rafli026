@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -40,10 +41,28 @@ class AppState extends ChangeNotifier {
                 : user.displayName!.trim(),
             email: user.email ?? '',
           );
+
+    if (currentUser == null) {
+      _posts.clear();
+      _postsSub?.cancel();
+      _postsSub = null;
+    } else {
+      _resubscribePosts();
+    }
+
     notifyListeners();
   }
 
+  void _resubscribePosts() {
+    _postsSub?.cancel();
+    _subscribePosts();
+  }
+
   void _subscribePosts() {
+    if (_postsSub != null) {
+      return;
+    }
+
     print('Subscribing to posts...');
     _postsSub = _firestore
         .collection('posts')
@@ -52,30 +71,32 @@ class AppState extends ChangeNotifier {
         .listen(
           (snapshot) {
             print('Posts snapshot received: ${snapshot.docs.length} docs');
+            final posts = <ReportPost>[];
+
+            for (final doc in snapshot.docs) {
+              final data = doc.data();
+              print('Post doc: ${doc.id}, data keys: ${data.keys.toList()}');
+
+              posts.add(
+                ReportPost(
+                  id: doc.id,
+                  userId: _parseString(data['userId']),
+                  userName: _parseString(data['userName']),
+                  category: _parseString(data['category'], fallback: 'Lainnya'),
+                  description: _parseString(data['description']),
+                  createdAt:
+                      _parseDateTime(data['createdAt']) ?? DateTime.now(),
+                  latitude: _parseDouble(data['latitude']),
+                  longitude: _parseDouble(data['longitude']),
+                  imagePath: _parseNullableString(data['imagePath']),
+                  imageBytes: _parseImageBytes(data['imageData']),
+                ),
+              );
+            }
+
             _posts
               ..clear()
-              ..addAll(
-                snapshot.docs.map((doc) {
-                  final data = doc.data();
-                  print(
-                    'Post doc: ${doc.id}, data keys: ${data.keys.toList()}',
-                  );
-                  return ReportPost(
-                    id: doc.id,
-                    userId: data['userId'] as String? ?? '',
-                    userName: data['userName'] as String? ?? '',
-                    category: data['category'] as String? ?? 'Lainnya',
-                    description: data['description'] as String? ?? '',
-                    createdAt:
-                        (data['createdAt'] as Timestamp?)?.toDate() ??
-                        DateTime.now(),
-                    latitude: (data['latitude'] as num?)?.toDouble() ?? 0,
-                    longitude: (data['longitude'] as num?)?.toDouble() ?? 0,
-                    imagePath: data['imagePath'] as String?,
-                    imageBytes: null,
-                  );
-                }).toList(),
-              );
+              ..addAll(posts);
             notifyListeners();
             print('Posts updated, count: ${_posts.length}');
           },
@@ -83,6 +104,53 @@ class AppState extends ChangeNotifier {
             print('Error subscribing to posts: $e');
           },
         );
+  }
+
+  String _parseString(dynamic value, {String fallback = ''}) {
+    if (value == null) {
+      return fallback;
+    }
+    if (value is String) {
+      return value;
+    }
+    return value.toString();
+  }
+
+  String? _parseNullableString(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    return value.toString();
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  Uint8List? _parseImageBytes(dynamic value) {
+    if (value == null) return null;
+    if (value is String && value.isNotEmpty) {
+      try {
+        return base64Decode(value);
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
   }
 
   void toggleTheme() {
@@ -173,6 +241,7 @@ class AppState extends ChangeNotifier {
         'latitude': latitude,
         'longitude': longitude,
         'imagePath': imagePath,
+        if (imageBytes != null) 'imageData': base64Encode(imageBytes),
       };
 
       await _firestore.collection('posts').add(postData);
