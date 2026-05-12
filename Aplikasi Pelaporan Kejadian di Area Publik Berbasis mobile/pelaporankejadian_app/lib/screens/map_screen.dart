@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-/// Map viewer yang menampilkan lokasi langsung di dalam aplikasi.
 class MapScreen extends StatelessWidget {
   static const route = '/map';
 
@@ -27,31 +26,20 @@ class MapScreen extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Lokasi',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                  ),
-                  child: Text(
-                    'Lat: ${initialLat.toStringAsFixed(5)}\nLng: ${initialLng.toStringAsFixed(5)}',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-              ],
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Text(
+                'Lat: ${initialLat.toStringAsFixed(5)}\nLng: ${initialLng.toStringAsFixed(5)}',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
             ),
           ),
+
           Expanded(
             child: FlutterMap(
               options: MapOptions(initialCenter: point, initialZoom: 15),
@@ -60,6 +48,7 @@ class MapScreen extends StatelessWidget {
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.pelaporankejadian_app',
                 ),
+
                 MarkerLayer(
                   markers: [
                     Marker(
