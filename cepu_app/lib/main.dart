@@ -5,17 +5,14 @@ import 'package:cepu_app/screens/home_screen.dart';
 import 'package:cepu_app/screens/sign_in_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-
-String get webVapidKey => dotenv.env['VAPID_KEY'] ?? '';
 
 Future<void> requestNotificationPermission() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -110,7 +107,6 @@ Future<String?> _networkImageToBase64(String url) async {
 }
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await dotenv.load(fileName: '.env');
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint('Handling background message: ${message.messageId}');
 
@@ -126,18 +122,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Load environment variables
-  await dotenv.load(fileName: '.env');
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await requestNotificationPermission();
-
   if (!kIsWeb) {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  }
-
-  if (!kIsWeb) {
     const AndroidInitializationSettings androidInit =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
@@ -150,32 +138,7 @@ void main() async {
       iOS: iosInit,
     );
     await flutterLocalNotificationsPlugin.initialize(settings: settings);
-
-    // Create notification channels for Android
-    const AndroidNotificationChannel defaultChannel =
-        AndroidNotificationChannel(
-          'default_channel',
-          'Notifikasi Default',
-          description: 'Notifikasi masuk dari FCM',
-          importance: Importance.high,
-        );
-
-    const AndroidNotificationChannel detailedChannel =
-        AndroidNotificationChannel(
-          'detailed_channel',
-          'Notifikasi Detail',
-          description: 'Notifikasi dengan detail tambahan',
-          importance: Importance.max,
-        );
-
-    final androidPlugin = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-
-    await androidPlugin?.createNotificationChannel(defaultChannel);
-    await androidPlugin?.createNotificationChannel(detailedChannel);
-  }
+  } else {}
   runApp(const MyApp());
 }
 
@@ -200,7 +163,10 @@ class _MyAppState extends State<MyApp> {
     final messaging = FirebaseMessaging.instance;
     try {
       final fcmToken = kIsWeb
-          ? await messaging.getToken(vapidKey: webVapidKey)
+          ? await messaging.getToken(
+              vapidKey:
+                  "BGMKDC2IU-0MZoAZWoKXrCWJXwmz2prRToS4phVQCvzfm35aUZzslKtaL6ROBCGXQjV2Vo0KOgY1bde5temaLSo",
+            )
           : await messaging.getToken();
       debugPrint("FCM Token: $fcmToken");
 
@@ -240,9 +206,7 @@ class _MyAppState extends State<MyApp> {
         debugPrint("Error subscribing to topic: $e");
       }
     } else {
-      setState(() {
-        status = "Web siap menerima notifikasi";
-      });
+      debugPrint("Web platform - topic subscription handled by browser");
     }
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {

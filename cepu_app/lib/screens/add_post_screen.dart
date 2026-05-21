@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:cepu_app/models/post.dart';
 import 'package:cepu_app/services/post_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -22,6 +20,10 @@ class _AddPostScreenState extends State<AddPostScreen> {
   String? _base64Image;
   String? _latitude;
   String? _longitude;
+  String? _category;
+  bool _isSubmitting = false;
+  bool _isGettingLocation = false;
+  bool _isGenerating = false;
   List<String> get categories {
     return [
       'Jalan Rusak',
@@ -33,30 +35,24 @@ class _AddPostScreenState extends State<AddPostScreen> {
     ];
   }
 
-  String? _category;
-  bool _isSubmitting = false;
-  bool _isGettingLocation = false;
-
   //1.Fungsi pick, compress and convert Image
   Future<void> pickImageAndConvert() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
     if (image != null) {
       final bytes = await image.readAsBytes();
-      final compressedImage = await FlutterImageCompress.compressWithList(
-        bytes,
-        quality: 50,
-      );
       setState(() {
-        _base64Image = base64Encode(compressedImage);
-        _generateDescriptionWithAI();
+        _base64Image = base64Encode(bytes);
+        _generateDescriptionWithAI(); // Panggil fungsi AI setelah gambar dipilih
       });
     }
   }
 
   //2. Fungsi Get Geo Location
   Future<void> _getLocation() async {
+    setState(() {
+      _isGettingLocation = true;
+    });
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -95,6 +91,12 @@ class _AddPostScreenState extends State<AddPostScreen> {
         _latitude = null;
         _longitude = null;
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGettingLocation = false;
+        });
+      }
     }
   }
 
@@ -162,16 +164,35 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
   //6. Fungsi submit Post
   Future<void> _submitPost() async {
-    if (_base64Image == null || _descriptionController.text.isEmpty) {
+    if (_base64Image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Pilih gambar dan masukkan deskripsi")),
+        const SnackBar(content: Text('Pilih gambar terlebih dahulu.')),
       );
+      return;
     }
+    if (_category == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih kategori terlebih dahulu.')),
+      );
+      return;
+    }
+    if (_descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Masukkan deskripsi terlebih dahulu.')),
+      );
+      return;
+    }
+    setState(() {
+      _isSubmitting = true;
+    });
+
     //ambil user id dan full name dari firebaseauth
     final userId = FirebaseAuth.instance.currentUser?.uid;
     final fullName = FirebaseAuth.instance.currentUser?.displayName;
     try {
-      _getLocation();
+      if (_latitude == null || _longitude == null) {
+        await _getLocation();
+      }
       PostService.addPost(
         Post(
           image: _base64Image,
@@ -182,28 +203,35 @@ class _AddPostScreenState extends State<AddPostScreen> {
           userId: userId,
           fullName: fullName,
         ),
-      ).whenComplete(() {
-        sendNotificationToTopic(_descriptionController.text, fullName!);
-        Navigator.of(context).pop();
-      });
+      );
+      if (!mounted) return;
+      await sendNotificationToTopic(_descriptionController.text, fullName!);
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Posting berhasil disimpan")));
+      Navigator.of(context).pop();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Posting gagal disimpan : $e")));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
-  bool _isGenerating = false;
   //7. Fungsi generate description otomatis berdasarkan gambar
   //Panggil fungsi ini setelah gambar dipilih
   Future<void> _generateDescriptionWithAI() async {
     if (_base64Image == null) return;
     setState(() => _isGenerating = true);
     try {
-      const apiKey = 'YOUR_API_KEY';
+      const apiKey = 'AIzaSyCSWT82cXnWrVmLcPNS5XN5-OsZuJvHJPk';
       const url =
           'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=$apiKey';
       final body = jsonEncode({
@@ -273,9 +301,9 @@ class _AddPostScreenState extends State<AddPostScreen> {
       url,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        "topic": "berita-fasum",
+        "topic": "berita",
         "title": "🔔 Laporan Baru",
-        "body": body, 
+        "body": body,
         "senderName": senderName,
         "senderPhotoUrl":
             "https://static.vecteezy.com/system/resources/thumbnails/041/642/167/small_2x/ai-generated-portrait-of-handsome-smiling-young-man-with-folded-arms-isolated-free-png.png",
@@ -299,7 +327,6 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     _descriptionController.dispose();
     super.dispose();
   }
@@ -332,6 +359,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
                   ),
               ],
             ),
+
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: _isSubmitting ? null : _showCategorySelect,
