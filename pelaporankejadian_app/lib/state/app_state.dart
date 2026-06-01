@@ -47,9 +47,32 @@ class AppState extends ChangeNotifier {
       _postsSub?.cancel();
       _postsSub = null;
     } else {
+      _loadUserProfile(currentUser!.id);
       _resubscribePosts();
     }
 
+    notifyListeners();
+  }
+
+  Future<void> _loadUserProfile(String userId) async {
+    final userDoc = _firestore.collection('users').doc(userId);
+    final snapshot = await userDoc.get();
+    if (snapshot.exists && snapshot.data() != null) {
+      final data = snapshot.data()!;
+      currentUser = currentUser?.copyWith(
+        name: _parseString(
+          data['name'],
+          fallback: currentUser?.name ?? 'Pengguna',
+        ),
+        photoBase64: _parseNullableString(data['photoBase64']),
+      );
+    } else {
+      await userDoc.set({
+        'name': currentUser?.name ?? 'Pengguna',
+        'email': currentUser?.email ?? '',
+        'photoBase64': null,
+      });
+    }
     notifyListeners();
   }
 
@@ -90,6 +113,8 @@ class AppState extends ChangeNotifier {
                   longitude: _parseDouble(data['longitude']),
                   imagePath: _parseNullableString(data['imagePath']),
                   imageBytes: _parseImageBytes(data['imageData']),
+                  likes: _parseStringList(data['likes']),
+                  favorites: _parseStringList(data['favorites']),
                 ),
               );
             }
@@ -151,6 +176,112 @@ class AppState extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  List<String> _parseStringList(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value.whereType<String>().toList();
+    }
+    if (value is String) {
+      return value
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return [];
+  }
+
+  Future<String?> updateProfile({String? name, String? photoBase64}) async {
+    if (currentUser == null) throw Exception('User belum login');
+
+    try {
+      final data = <String, dynamic>{};
+      if (name != null) {
+        data['name'] = name.trim();
+      }
+      if (photoBase64 != null) {
+        data['photoBase64'] = photoBase64;
+      }
+
+      await _firestore
+          .collection('users')
+          .doc(currentUser!.id)
+          .set(data, SetOptions(merge: true));
+
+      if (name != null) {
+        await _auth.currentUser?.updateDisplayName(name.trim());
+      }
+      await _auth.currentUser?.reload();
+
+      currentUser = currentUser?.copyWith(
+        name: name?.trim(),
+        photoBase64: photoBase64 ?? currentUser?.photoBase64,
+      );
+      notifyListeners();
+      return null;
+    } catch (e) {
+      print('Gagal memperbarui profil: $e');
+      return 'Gagal memperbarui profil';
+    }
+  }
+
+  Future<void> toggleLike(String postId) async {
+    if (currentUser == null) throw Exception('User belum login');
+    final postDoc = _firestore.collection('posts').doc(postId);
+    final snapshot = await postDoc.get();
+    if (!snapshot.exists) return;
+
+    final likes = _parseStringList(snapshot.data()?['likes']);
+    if (likes.contains(currentUser!.id)) {
+      await postDoc.update({
+        'likes': FieldValue.arrayRemove([currentUser!.id]),
+      });
+    } else {
+      await postDoc.update({
+        'likes': FieldValue.arrayUnion([currentUser!.id]),
+      });
+    }
+  }
+
+  Future<void> toggleFavorite(String postId) async {
+    if (currentUser == null) throw Exception('User belum login');
+    final postDoc = _firestore.collection('posts').doc(postId);
+    final snapshot = await postDoc.get();
+    if (!snapshot.exists) return;
+
+    final favorites = _parseStringList(snapshot.data()?['favorites']);
+    if (favorites.contains(currentUser!.id)) {
+      await postDoc.update({
+        'favorites': FieldValue.arrayRemove([currentUser!.id]),
+      });
+    } else {
+      await postDoc.update({
+        'favorites': FieldValue.arrayUnion([currentUser!.id]),
+      });
+    }
+  }
+
+  Future<void> addComment({
+    required String postId,
+    required String text,
+  }) async {
+    if (currentUser == null) throw Exception('User belum login');
+    if (text.trim().isEmpty) return;
+
+    final commentData = {
+      'userId': currentUser!.id,
+      'userName': currentUser!.name,
+      'text': text.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    await _firestore
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .add(commentData);
   }
 
   void toggleTheme() {

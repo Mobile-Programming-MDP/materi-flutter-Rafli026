@@ -6,6 +6,7 @@ import '../models/post.dart';
 import 'add_post_screen.dart';
 import 'detail_post_screen.dart';
 import 'map_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   static const route = '/home';
@@ -20,6 +21,13 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
+          IconButton(
+            tooltip: 'Profil',
+            onPressed: () {
+              Navigator.of(context).pushNamed(ProfileScreen.route);
+            },
+            icon: const Icon(Icons.person_outline),
+          ),
           IconButton(
             tooltip: 'Toggle Theme',
             onPressed: appState.toggleTheme,
@@ -138,6 +146,26 @@ class _PostCard extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(
+                    Icons.thumb_up_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(post.likeCount.toString()),
+                  const SizedBox(width: 16),
+                  Icon(
+                    Icons.star_border,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(post.favoriteCount.toString()),
+                ],
               ),
               const SizedBox(height: 10),
               Row(

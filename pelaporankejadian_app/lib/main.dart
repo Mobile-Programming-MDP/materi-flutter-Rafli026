@@ -6,6 +6,7 @@ import 'screens/add_post_screen.dart';
 import 'screens/detail_post_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/profile_screen.dart';
 import 'state/app_state.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -51,6 +52,7 @@ class _PelaporanKejadianAppState extends State<PelaporanKejadianApp> {
               SignUpScreen.route: (_) => SignUpScreen(appState: appState),
               HomeScreen.route: (_) => HomeScreen(appState),
               AddPostScreen.route: (_) => AddPostScreen(appState: appState),
+              ProfileScreen.route: (_) => ProfileScreen(appState: appState),
             },
             onGenerateRoute: (settings) {
               if (settings.name == DetailPostScreen.route) {

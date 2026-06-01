@@ -17,6 +17,8 @@ class ReportPost {
   // Simpan lat/lng sebagai double agar tidak bergantung ke latlong2 untuk compile.
   final double latitude;
   final double longitude;
+  final List<String> likes;
+  final List<String> favorites;
 
   const ReportPost({
     required this.id,
@@ -29,5 +31,10 @@ class ReportPost {
     required this.longitude,
     this.imagePath,
     this.imageBytes,
+    this.likes = const [],
+    this.favorites = const [],
   });
+
+  int get likeCount => likes.length;
+  int get favoriteCount => favorites.length;
 }
